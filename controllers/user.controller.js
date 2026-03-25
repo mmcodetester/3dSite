@@ -64,14 +64,12 @@ exports.Save = async (req, res) => {
             name: req.body.name,
             username: req.body.username,
             password: req.body.password,
-            role_id: req.body.role_id,
-            status: req.body.status,
             deleted: false,
         }
         const duplicate = await isDuplicate(data)
         if (!duplicate) {
             if (data.id > 0) {
-                const item = await repo.getById({ id: id })
+                const item = await repo.getById({ id: data.id })
                 data.password = item.password
             } else {
                 const saltRounds = 10;

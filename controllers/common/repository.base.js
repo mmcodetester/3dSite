@@ -92,7 +92,7 @@ class RepositoryBase {
         try {
             if (data.id > 0) {
                 const existingRecord = await this.model.findByPk(data.id, { transaction });
-                
+
                 if (!existingRecord) {
                     result.success = false;
                     result.messages.push(constants.RecordNotFound);
@@ -207,10 +207,10 @@ class RepositoryBase {
       *@param {Object}   [param.include={}] -  Array of associated models to include.
       * @returns {Promise<Object>} Sequelize model value .
       */
-    async CustomQueryFindAll({ filter = {}, include = [] ,order = ['id', 'DESC'] }) {
+    async CustomQueryFindAll({ filter = {}, include = [], order = ['id', 'DESC'] }) {
         var data = [];
         try {
-            data = this.model.findAll({ where: filter, include: include , order: order.length ? [order] : [],})
+            data = this.model.findAll({ where: filter, include: include, order: order.length ? [order] : [], })
         } catch (error) {
             //logger.error(`${this.model}, ${this.error}`)
         }
@@ -228,9 +228,30 @@ class RepositoryBase {
             return total
         } catch (err) {
             //logger.error(err)
+            console.log(err)
             return 0
         }
 
+    }
+    async CustomQuerySumAll({
+        attributes = null,
+        filter = {},
+        include = [],
+        group = null,
+        raw = false,
+    }) {
+        try {
+            return await this.model.findAll({
+                where: filter,
+                include: include,
+                attributes: attributes || undefined,
+                group: group || undefined,
+                raw,
+            })
+        } catch (error) {
+            console.error('CustomQueryFindAll Error:', error)
+            return []
+        }
     }
 }
 

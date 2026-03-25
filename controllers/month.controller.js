@@ -33,3 +33,14 @@ exports.InitMonth = async () => {
         console.log(error)
     }
 }
+
+exports.GetAll = async (req,res) =>{
+    let result = []
+    try{
+         const filter = { deleted: false }
+         result = await repo.CustomQueryFindAll({filter: filter})
+    }catch(e){
+        console.log(e)
+    }
+    res.json(result)
+}

@@ -7,5 +7,7 @@ router.get('/',AuthGuard, controller.GetAll)
 router.post('/', AuthGuard,controller.Save)
 router.get('/getbyid', AuthGuard,controller.GetById)
 router.delete('/delete', AuthGuard,controller.Delete)
+router.get('/changestatus', controller.ChangeStatus)
+router.get('/getactiveamount', controller.GetActiveAmount)
 
 module.exports = router

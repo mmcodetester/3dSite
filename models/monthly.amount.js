@@ -26,6 +26,29 @@ const MonthlyAmount = database.define('tbl_monthly_amount', {
         autoIncrement: false,
         allowNull: false
     },
+    from_day: {
+        type: DataTypes.INTEGER,
+        primaryKey: false,
+        autoIncrement: false,
+        allowNull: false
+    },
+    to_day: {
+        type: DataTypes.INTEGER,
+        primaryKey: false,
+        autoIncrement: false,
+        allowNull: false
+    },
+    status: {
+        type: DataTypes.BOOLEAN,
+        allowNull: true,
+        defaultValue: false
+    },
+    amount: {
+        type: DataTypes.INTEGER,
+        primaryKey: false,
+        autoIncrement: false,
+        allowNull: false
+    },
     deleted: {
         type: DataTypes.BOOLEAN,
         allowNull: true,

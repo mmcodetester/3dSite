@@ -8,17 +8,25 @@ const Month = require("../../models/month.model");
 const ExcelJS = require('exceljs');
 const User = require("../../models/user.model");
 const DailyTotal = require("../../models/dailytotal.model");
+const { Op, Sequelize } = require("sequelize");
+const CommandResult = require("../../utils/helpers/command.result");
 
 
 const repo = new RepositoryBase(Order)
 const dailyTotalRepo = new RepositoryBase(DailyTotal)
 
-exports.GetAll = async(req, res) =>{
+exports.GetAll = async (req, res) => {
     let result = new PageResult()
-    try{
-        const { number,  date, page = 1, length = 10, sortBy = 'id', sortOrder = 'DESC' } = req.query
+    try {
+        const { number, date, created_by, page = 1, length = 10, sortBy = 'id', sortOrder = 'DESC' } = req.query
         let filter = {
             created_date: date ? new Date(date) : new Date()
+        }
+        if(number){
+            filter.number = number
+        }
+        if(created_by){
+            filter.created_by = created_by
         }
         result = await dailyTotalRepo.getAll({
             filter: filter,
@@ -26,7 +34,7 @@ exports.GetAll = async(req, res) =>{
             length: length,
             order: [sortBy, sortOrder],
         })
-    }catch(e){
+    } catch (e) {
         console.log(e)
     }
     res.json(result)
@@ -35,10 +43,19 @@ exports.GetAll = async(req, res) =>{
 exports.GetAllDetailReport = async (req, res) => {
     let result = new PageResult()
     try {
-        const { number, role_id, date, page = 1, length = 10, sortBy = 'number', sortOrder = 'DESC' } = req.query
+        const { number, created_by, date, page = 1, length = 10, sortBy = 'number', sortOrder = 'DESC' } = req.query
         let filter = {
             deleted: false,
             created_date: date ? new Date(date) : new Date()
+        }
+        if (created_by) {
+            filter.created_by = created_by
+        }
+        let numberFilter = {
+            deleted: false
+        };
+        if (number) {
+            numberFilter.number = number
         }
         let order = [];
         if (sortBy === 'number') {
@@ -65,11 +82,16 @@ exports.GetAllDetailReport = async (req, res) => {
                 },
                 {
                     association: 'number',
+                    where: numberFilter,
+                    required: true,
+                },
+                {
+                    association: 'user',
                     where: { deleted: false },
                     required: false,
                 },
                 {
-                    association: 'user',
+                    association: 'monthly_amount',
                     where: { deleted: false },
                     required: false,
                 },
@@ -91,6 +113,9 @@ exports.GetAllDetailReport = async (req, res) => {
                 if (data.user) {
                     vm.order_by = data.user.name
                 }
+                if (data.monthly_amount) {
+                    vm.from_to = ` ${data.monthly_amount.from_day} - ${data.monthly_amount.to_day} `
+                }
                 result.data.push(vm)
             });
         }
@@ -100,13 +125,54 @@ exports.GetAllDetailReport = async (req, res) => {
     res.json(result)
 }
 
+exports.Delete = async (req, res) => {
+    let result = new CommandResult()
+    try {
+        const { id } = req.query
+        if (id) {
+            result = await repo.delete({ id: id })
+        }
+    } catch (e) {
+
+    }
+    res.json(result)
+}
+exports.GetDetailsTotalAmount = async (req, res) => {
+    let total = 0;
+    try {
+        const { number, created_by, date } = req.query
+        let filter = {
+            created_date: date ? new Date(date) : new Date()
+        }
+        if (created_by) {
+            filter.created_by = created_by
+        }
+        if (number) {
+            filter.number = number
+        }
+        total = await dailyTotalRepo.GetSum({field_name:'total_amount', filter:filter})
+       
+    } catch (e) {
+        console.log(e)
+    }
+    res.json(total)
+}
 exports.ExportExcelDetailReport = async (req, res) => {
     let result = new PageResult()
     try {
-        const { number, role_id, page = 1, length = 10, sortBy = 'id', sortOrder = 'DESC' } = req.query
+        const { number, created_by, date, page = 1, length = 10, sortBy = 'id', sortOrder = 'DESC' } = req.query
         let filter = {
             deleted: false,
             created_date: new Date()
+        }
+        if (created_by) {
+            filter.created_by = created_by
+        }
+        let numberFilter = {
+            deleted: false
+        };
+        if (number) {
+            numberFilter.number = { [Op.like]: `%${number}%` }
         }
         let order = [];
         if (sortBy === 'number') {
@@ -131,11 +197,16 @@ exports.ExportExcelDetailReport = async (req, res) => {
                 },
                 {
                     association: 'number',
+                    where: numberFilter,
+                    required: true,
+                },
+                {
+                    association: 'user',
                     where: { deleted: false },
                     required: false,
                 },
                 {
-                    association: 'user',
+                    association: 'monthly_amount',
                     where: { deleted: false },
                     required: false,
                 },
@@ -162,6 +233,9 @@ exports.ExportExcelDetailReport = async (req, res) => {
                 if (data.user) {
                     vm.order_by = data.user.name
                 }
+                if (data.monthly_amount) {
+                    vm.from_to = ` ${data.monthly_amount.from_day} - ${data.monthly_amount.to_day} `
+                }
                 result.data.push(vm)
             });
         }
@@ -172,6 +246,7 @@ exports.ExportExcelDetailReport = async (req, res) => {
             { header: 'Number', key: 'number', width: 15 },
             { header: 'Amount', key: 'amount', width: 15 },
             { header: 'Month', key: 'month', width: 15 },
+            { header: 'From/To', key: 'from_to', width: 15 },
             { header: 'Created Date', key: 'date', width: 15 },
             { header: 'Created By', key: 'order_by', width: 15 }
         ]

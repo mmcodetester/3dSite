@@ -24,6 +24,7 @@ exports.Save = async (req, res) => {
             const monthlyFilter = {
                 deleted: false,
                 year: year,
+                status: true,
                 month_id: month
             }
             const monthlyAmount = await monthlyAmountRepo.CustomQuery({ filter: monthlyFilter })
@@ -36,6 +37,7 @@ exports.Save = async (req, res) => {
                                 deleted: false,
                                 year: year,
                                 month_id: month,
+                                monthly_amount_id : monthlyAmount.id,
                                 number_id: data.number_id
                             }
                             const totalOrder = await repo.GetSum({ field_name: 'amount', filter: orderFilter }) || 0
@@ -46,6 +48,7 @@ exports.Save = async (req, res) => {
                                 vm.month_id = month
                                 vm.year = year
                                 vm.number_id = data.number_id
+                                vm.monthly_amount_id = monthlyAmount.id,
                                 vm.amount = data.amount
                                 vm.created_by = user.id
                                 vm.date = new Date()

@@ -9,12 +9,15 @@ const repo = new RepositoryBase(MonthlyAmount)
 exports.GetAll = async (req, res) => {
     let result = new PageResult();
     try {
-        const { year, page = 1, length = 10, sortBy = 'id', sortOrder = 'DESC' } = req.query
+        const { year, month_id, page = 1, length = 10, sortBy = 'id', sortOrder = 'DESC' } = req.query
         let filter = {
             deleted: false,
         }
         if (year) {
             filter.year = year
+        }
+        if(month_id){
+            filter.month_id = month_id
         }
         let order = [];
 
@@ -42,6 +45,9 @@ exports.GetAll = async (req, res) => {
                 vm.id = data.id
                 vm.year = data.year
                 vm.month_id = data.month_id
+                vm.from_day = data.from_day
+                vm.to_day = data.to_day
+                vm.status = data.status
                 if(data.month){
                     vm.month_name = data.month.month_name
                 }
@@ -64,6 +70,9 @@ exports.Save = async (req, res) => {
             year: req.body.year,
             month_id: req.body.month_id,
             amount: req.body.amount,
+            from_day : req.body.from_day,
+            to_day : req.body.to_day,
+            status : req.body.status,
             deleted: false,
         }
         const duplicate = await isDuplicate(data)
@@ -93,6 +102,39 @@ exports.GetById = async (req, res) => {
     }
     res.json(data)
 }
+exports.GetActiveAmount = async (req, res) =>{
+    let data = {}
+    try{
+        const filter = {
+            deleted : false,
+            status : true
+        }
+        data = await repo.CustomQuery({filter: filter})
+    }catch(e){
+
+    }
+    res.json(data)
+}
+exports.ChangeStatus = async (req, res) => {
+    let data = {};
+    let result = new CommandResult()
+    try {
+        const { id } = req.query
+        if (id) {
+            data = await repo.getById({ id: id })
+            if(data){
+                data = data.toJSON()
+                data.status = !data.status
+                console.log(data)
+                result = await repo.save(data)
+            }
+        }
+    } catch (e) {
+
+    }
+    res.json(result)
+}
+
 
 /**
  * Delete Location by ID
@@ -117,13 +159,14 @@ const isDuplicate = async (data) => {
     let duplicate = false
     if (data.id > 0) {
         const item = await repo.getById({ id: data.id })
-        if (item.year == data.year && item.month_id == data.month_id) {
+        if (item.year == data.year && item.month_id == data.month_id && item.from_day == data.from_day) {
             duplicate = false
         } else {
             const filter = {
                 deleted: false,
                 year: data.year,
-                month_id: data.month_id
+                month_id: data.month_id,
+                from_day: data.from_day
             }
             const existing = await repo.CustomQuery({ filter: filter })
             if (existing) {
@@ -134,7 +177,8 @@ const isDuplicate = async (data) => {
         const filter = {
             deleted: false,
             year: data.year,
-            month_id: data.month_id
+            month_id: data.month_id,
+            from_day: data.from_day
         }
         const existing = await repo.CustomQuery({ filter: filter })
         if (existing) {

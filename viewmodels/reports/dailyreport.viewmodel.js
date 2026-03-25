@@ -7,5 +7,6 @@ class DailyReportViewModel{
     amount = ''
     order_by = ''
     date = ''
+    from_to = ''
 }
 module.exports = DailyReportViewModel

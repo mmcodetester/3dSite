@@ -7,5 +7,7 @@ router.get('/', controller.GetAll)
 router.get('/detail-report', authService.AuthGuard, controller.GetAllDetailReport)
 router.get('/gettodaytotal', authService.AuthGuard, controller.GetTodayTotal)
 router.get('/export-excel-detail-report', authService.AuthGuard, controller.ExportExcelDetailReport)
+router.get('/detailstotalamount', authService.AuthGuard, controller.GetDetailsTotalAmount)
+router.delete('/delete', authService.AuthGuard, controller.Delete)
 
 module.exports = router

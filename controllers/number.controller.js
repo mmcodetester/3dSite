@@ -88,12 +88,9 @@ exports.InitNumber = async () => {
 
 
 exports.GetAll = async (req, res) => {
-    let result = []
-
     try {
         const number = req.query.number
 
-        // 🔹 Base filter
         let filter = {
             deleted: false
         }
@@ -104,16 +101,15 @@ exports.GetAll = async (req, res) => {
             }
         }
 
-        // 🔹 Current date
         const now = new Date()
         const year = now.getFullYear()
         const month = now.getMonth() + 1
 
-        // 🔹 Monthly amount (1 query)
         const monthlyAmount = await monthlyAmountRepo.CustomQuery({
             filter: {
                 deleted: false,
-                year: year,
+                year,
+                status: true,
                 month_id: month
             }
         })
@@ -122,37 +118,37 @@ exports.GetAll = async (req, res) => {
             return res.json([])
         }
 
-        // 🔹 Get number list (1 query)
-        const list = await repo.CustomQueryFindAll({ filter, order:['id','asc'] })
+        const list = await repo.CustomQueryFindAll({
+            filter,
+            order: ['id', 'asc']
+        })
 
         if (!list || list.length === 0) {
             return res.json([])
         }
-
-        // 🔹 Get ALL order sums in ONE query (🔥 key optimization)
-        const orderSums = await orderRepo.model.findAll({
+        const orderSums = await orderRepo.CustomQuerySumAll({
             attributes: [
                 'number_id',
+                'monthly_amount_id',
                 [Sequelize.fn('SUM', Sequelize.col('amount')), 'total']
             ],
-            where: {
+            filter: {
                 deleted: false,
-                year: year,
-                month_id: month
+                year,
+                month_id: month,
+                monthly_amount_id: monthlyAmount.id
             },
-            group: ['number_id'],
+            group: ['number_id', 'monthly_amount_id'],
             raw: true
         })
 
-        // 🔹 Convert to map for O(1) lookup
-        const orderMap = {}
-        for (const item of orderSums) {
-            orderMap[item.number_id] = parseFloat(item.total) || 0
-        }
+        const sumMap = {}
+        orderSums.forEach(x => {
+            sumMap[x.number_id] = parseFloat(x.total || 0)
+        })
 
-        // 🔹 Build result (NO DB CALL INSIDE LOOP 🚀)
-        for (const data of list) {
-            const totalOrder = orderMap[data.id] || 0
+        const result = list.map(data => {
+            const totalOrder = sumMap[data.id] || 0
 
             let vm = new OrderViewModel()
             vm.id = data.id
@@ -163,17 +159,13 @@ exports.GetAll = async (req, res) => {
                 ? orderStatusEnum.Available
                 : orderStatusEnum.Full
 
-            result.push(vm)
-        }
+            return vm
+        })
+
+        return res.json(result)
 
     } catch (e) {
         console.error("GetAll Error:", e)
-        return res.status(500).json({
-            success: false,
-            message: "Internal Server Error",
-            detail: e.message
-        })
+        res.json(null)
     }
-
-    return res.json(result)
 }

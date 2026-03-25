@@ -3,6 +3,7 @@ const database = require('../utils/data/database')
 const Month = require('./month.model')
 const Number = require('./number.model')
 const User = require('./user.model')
+const MonthlyAmount = require('./monthly.amount')
 
 const Order = database.define('tbl_order', {
     id: {
@@ -26,6 +27,11 @@ const Order = database.define('tbl_order', {
     month_id: {
         type: DataTypes.INTEGER,
         allowNull: false
+    },
+    monthly_amount_id: {
+        type: DataTypes.INTEGER,
+        allowNull: true,
+        defaultValue : 0
     },
     date: {
         type: DataTypes.DATE,
@@ -65,5 +71,6 @@ const Order = database.define('tbl_order', {
 Order.belongsTo(Month, {foreignKey:'month_id', as:'month', onDelete:'NO ACTION', onUpdate:'NO ACTION'})
 Order.belongsTo(Number, {foreignKey:'number_id', as:'number', onDelete:'NO ACTION', onUpdate:'NO ACTION'})
 Order.belongsTo(User, {foreignKey:'created_by', as:'user', onDelete:'NO ACTION', onUpdate:'NO ACTION'})
+Order.belongsTo(MonthlyAmount , {foreignKey:'monthly_amount_id', as:'monthly_amount', onDelete:'NO ACTION', onUpdate:'NO ACTION'})
 
 module.exports = Order

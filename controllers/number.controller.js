@@ -110,7 +110,6 @@ exports.GetAll = async (req, res) => {
                 deleted: false,
                 year,
                 status: true,
-                month_id: month
             }
         })
 
@@ -135,7 +134,6 @@ exports.GetAll = async (req, res) => {
             filter: {
                 deleted: false,
                 year,
-                month_id: month,
                 monthly_amount_id: monthlyAmount.id
             },
             group: ['number_id', 'monthly_amount_id'],

@@ -26,6 +26,8 @@ const dailyReportRouter = require('./routers/reports/dailyreport.router')
 const orderTotalRouter = require('./routers/reports/ordertotal.router')
 const dashboardRouter = require('./routers/dashboard.router')
 const weeklyRouter = require('./routers/reports/weeklytotal.router')
+const weeklyPerUserRouter = require('./routers/reports/weeklyamountperuser.router')
+
 app.use('/api/user', userRouter)
 app.use('/api/number', numberRouter)
 app.use('/api/dropdown', dropdownRouter)
@@ -36,6 +38,7 @@ app.use('/api/dailyreport', dailyReportRouter)
 app.use('/api/ordertotal', orderTotalRouter)
 app.use('/api/dashboard', dashboardRouter)
 app.use('/api/weeklyreport', weeklyRouter)
+app.use('/api/weeklyamountperuser',weeklyPerUserRouter)
 
 
 database.authenticate().then((res) => {

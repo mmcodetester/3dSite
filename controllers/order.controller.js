@@ -25,7 +25,6 @@ exports.Save = async (req, res) => {
                 deleted: false,
                 year: year,
                 status: true,
-                month_id: month
             }
             const monthlyAmount = await monthlyAmountRepo.CustomQuery({ filter: monthlyFilter })
             if (monthlyAmount) {
@@ -36,7 +35,6 @@ exports.Save = async (req, res) => {
                             const orderFilter = {
                                 deleted: false,
                                 year: year,
-                                month_id: month,
                                 monthly_amount_id : monthlyAmount.id,
                                 number_id: data.number_id
                             }

@@ -1,9 +1,11 @@
 const MonthlyAmount = require("../../models/monthly.amount");
+const User = require("../../models/user.model");
 const WeeklyAmountPerUser = require("../../models/weeklyamountperuser");
 const PageResult = require("../../utils/helpers/page.result");
 const WeeklyAmountViewModel = require("../../viewmodels/reports/weekly.amount.viewmodel");
 const RepositoryBase = require("../common/repository.base");
 
+const userRepo = new RepositoryBase(User)
 const repo = new RepositoryBase(WeeklyAmountPerUser)
 const monthlyAmountRepo = new RepositoryBase(MonthlyAmount)
 const GetActiveAmountId = async () => {
@@ -98,5 +100,32 @@ exports.GetTotal = async (req, res) => {
     } catch (e) {
         console.log(e)
     }
+    res.json(result)
+}
+
+exports.GetWeeklyCompairsmByUser=async (req, res) =>{
+    const result = []
+    try{
+        const filter = {
+            deleted : false
+        }
+        const userList = await userRepo.CustomQueryFindAll({filter:filter})
+        for(let user of userList){
+            let vm = {
+                key: user.id,
+                title : user.name,
+                value  : 0
+            }
+            const monthlyAmount = await GetActiveAmountId()
+            const totalFilter = {
+                monthly_amount_id : monthlyAmount,
+                id : user.id
+            }
+            vm.value  = await repo.GetSum({ field_name: 'total_amount', filter: totalFilter }) ?? 0
+            result.push(vm)
+        }
+    }catch(e){
+        console.log(e)
+    }  
     res.json(result)
 }

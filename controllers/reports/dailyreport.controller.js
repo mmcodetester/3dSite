@@ -103,6 +103,7 @@ exports.GetAllDetailReport = async (req, res) => {
                 let vm = new DailyReportViewModel()
                 vm.id = data.id
                 vm.amount = data.amount
+                vm.extra = data.extra ?? 0
                 vm.date = moment(data.date).format('DD/MM/YYYY hh:mm A')
                 if (data.month) {
                     vm.month = data.month.month_name
@@ -138,7 +139,10 @@ exports.Delete = async (req, res) => {
     res.json(result)
 }
 exports.GetDetailsTotalAmount = async (req, res) => {
-    let total = 0;
+    let total = {
+        total : 0,
+        extra : 0
+    };
     try {
         const { number, created_by, date } = req.query
         let filter = {
@@ -150,8 +154,8 @@ exports.GetDetailsTotalAmount = async (req, res) => {
         if (number) {
             filter.number = number
         }
-        total = await dailyTotalRepo.GetSum({field_name:'total_amount', filter:filter})
-       
+        total.total = await dailyTotalRepo.GetSum({field_name:'total_amount', filter:filter})
+       total.extra = await dailyTotalRepo.GetSum({field_name:'extra_amount', filter:filter})
     } catch (e) {
         console.log(e)
     }
@@ -219,7 +223,7 @@ exports.ExportExcelDetailReport = async (req, res) => {
             let count = 0;
             list.forEach((data) => {
                 count++;
-                console.log(data)
+               // console.log(data)
                 let vm = new DailyReportViewModel()
                 vm.id = count
                 vm.amount = data.amount

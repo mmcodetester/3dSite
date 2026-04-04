@@ -66,6 +66,7 @@ exports.GetAll = async(req, res) =>{
                 vm.name = data.name
                 vm.username = data.username
                 vm.total_amount = data.total_amount
+                vm.total_extra = data.total_extra
                 vm.monthly_amount_id = data.monthly_amount_id
                 vm.from_to = data.from_to
                 if(data.monthly_amount){
@@ -84,7 +85,10 @@ exports.GetAll = async(req, res) =>{
 }
 
 exports.GetTotal = async (req, res) => {
-    let result = 0
+    let result = {
+        total : 0,
+        extra : 0
+    }
     try {
          const { monthly_amount_id, number, id, page = 1, length = 10, sortBy = 'id', sortOrder = 'DESC' } = req.query
         let filter = {
@@ -96,7 +100,8 @@ exports.GetTotal = async (req, res) => {
         if(id){
             filter.id = id
         }
-        result = await repo.GetSum({ field_name: 'total_amount', filter: filter })
+        result.total = await repo.GetSum({ field_name: 'total_amount', filter: filter })
+        result.extra = await repo.GetSum({ field_name: 'total_extra', filter: filter })
     } catch (e) {
         console.log(e)
     }
@@ -114,7 +119,8 @@ exports.GetWeeklyCompairsmByUser=async (req, res) =>{
             let vm = {
                 key: user.id,
                 title : user.name,
-                value  : 0
+                value  : 0,
+                extra : 0
             }
             const monthlyAmount = await GetActiveAmountId()
             const totalFilter = {
@@ -122,6 +128,7 @@ exports.GetWeeklyCompairsmByUser=async (req, res) =>{
                 id : user.id
             }
             vm.value  = await repo.GetSum({ field_name: 'total_amount', filter: totalFilter }) ?? 0
+            vm.extra  = await repo.GetSum({ field_name: 'total_extra', filter: totalFilter }) ?? 0
             result.push(vm)
         }
     }catch(e){

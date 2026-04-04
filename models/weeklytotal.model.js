@@ -19,6 +19,12 @@ const WeeklyTotal = database.define('tbl_weekly_amount_total', {
         autoIncrement: false,
         allowNull: true
     },
+    total_extra: {
+        type: DataTypes.INTEGER,
+        primaryKey: false,
+        autoIncrement: false,
+        allowNull: true
+    },
     monthly_amount_id: {
         type: DataTypes.INTEGER,
         allowNull: true,

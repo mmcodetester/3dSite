@@ -49,6 +49,7 @@ exports.Save = async (req, res) => {
                                 vm.monthly_amount_id = monthlyAmount.id,
                                 vm.amount = data.amount
                                 vm.created_by = user.id
+                                vm.extra = data.extra
                                 vm.date = new Date()
                                 list.push(vm)
                             } else {

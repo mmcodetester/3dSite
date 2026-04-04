@@ -25,6 +25,12 @@ const WeeklyAmountPerUser = database.define('tbl_weekly_amount_per_user',{
         autoIncrement: false,
         allowNull: true
     },
+    total_extra: {
+        type: DataTypes.INTEGER,
+        primaryKey: false,
+        autoIncrement: false,
+        allowNull: true
+    },
     name: {
         type: DataTypes.STRING(250),
         allowNull: false

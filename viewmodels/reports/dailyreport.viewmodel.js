@@ -5,6 +5,7 @@ class DailyReportViewModel{
     month = new Date().getMonth() + 1
     number = ''
     amount = ''
+    extra = ''
     order_by = ''
     date = ''
     from_to = ''

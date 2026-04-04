@@ -125,7 +125,7 @@ exports.ChangeStatus = async (req, res) => {
             if(data){
                 data = data.toJSON()
                 data.status = !data.status
-                console.log(data)
+               //console.log(data)
                 result = await repo.save(data)
             }
         }

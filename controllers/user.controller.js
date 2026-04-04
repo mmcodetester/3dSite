@@ -131,7 +131,7 @@ exports.Delete = async (req, res) => {
     let result = new CommandResult()
     try {
         const { id } = req.query
-        console.log(id)
+        //console.log(id)
         if (id) {
             result = await repo.delete({ id: id })
         }

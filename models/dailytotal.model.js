@@ -27,6 +27,12 @@ const DailyTotal = database.define('tbl_daily_total', {
         autoIncrement: false,
         allowNull: true
     },
+    extra_amount: {
+        type: DataTypes.INTEGER,
+        primaryKey: false,
+        autoIncrement: false,
+        allowNull: true
+    },
     month_id: {
         type: DataTypes.INTEGER,
         primaryKey: false,

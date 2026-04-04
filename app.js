@@ -4,13 +4,15 @@ const app = express()
 const bodyParser = require('body-parser')
 const numberController = require('./controllers/number.controller')
 const monthController = require('./controllers/month.controller')
+const http = require('http')
+const socket = require('./utils/socket.service')
 require('dotenv').config()
 
 const cors = require('cors')
 
 app.use(cors({
     origin: '*',
-    methods:['GET', 'POST', 'PUT', 'DELETE']
+    methods: ['GET', 'POST', 'PUT', 'DELETE']
 }))
 
 app.use(bodyParser.json())
@@ -38,7 +40,7 @@ app.use('/api/dailyreport', dailyReportRouter)
 app.use('/api/ordertotal', orderTotalRouter)
 app.use('/api/dashboard', dashboardRouter)
 app.use('/api/weeklyreport', weeklyRouter)
-app.use('/api/weeklyamountperuser',weeklyPerUserRouter)
+app.use('/api/weeklyamountperuser', weeklyPerUserRouter)
 
 
 database.authenticate().then((res) => {
@@ -51,8 +53,16 @@ database.sync({ force: false }).then(async (res) => {
 }).catch((err) => {
 })
 
+const server = http.createServer(app)
+const io = socket.init(server)
 
-app.listen(8088, (err) => {
+// io.on('connection', (socket) => {
+//     console.log('client connected', socket.id)
+// })
+// io.on('getfullnumber', (data) => {
+//     console.log(`socket get full number`);
+// });
+server.listen(8088, (err) => {
     if (err) console.log('err starting server - ', err)
     console.log('app is starting on port ', 8088)
 })

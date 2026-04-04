@@ -33,6 +33,11 @@ const Order = database.define('tbl_order', {
         allowNull: true,
         defaultValue : 0
     },
+    extra: {
+        type: DataTypes.INTEGER,
+        allowNull: true,
+        defaultValue : null
+    },
     date: {
         type: DataTypes.DATE,
         allowNull: true,

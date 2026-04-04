@@ -167,3 +167,37 @@ exports.GetAll = async (req, res) => {
         res.json(null)
     }
 }
+
+exports.GetFullNumberList = () =>{
+
+}
+
+exports.GetAvailable  = async(req,res) =>{
+    let available = 0
+    try{
+        const {id} = req.query
+        const monthlyAmount = await monthlyAmountRepo.CustomQuery({
+            filter: {
+                deleted: false,
+                status: true,
+            }
+        })
+        if(monthlyAmount){
+            const totalSale = await orderRepo.GetSum({field_name:'amount', filter:{
+                deleted: false,
+                number_id : id,
+                monthly_amount_id : monthlyAmount.id
+            }}) || 0
+            if(totalSale >0){
+                if(monthlyAmount.amount > totalSale){
+                    available = monthlyAmount.amount - totalSale
+                }
+            }else{
+                available = monthlyAmount.amount
+            }
+        }
+    }catch(e){
+        console.log(e)
+    }
+    res.json(available)
+}

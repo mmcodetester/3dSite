@@ -66,6 +66,7 @@ exports.GetAll = async (req, res) => {
                 vm.id = data.id
                 vm.number = data.number
                 vm.total_amount = data.total_amount
+                vm.total_extra = data.total_extra
                 vm.monthly_amount_id = data.monthly_amount_id
                 vm.from_to = data.from_to
                 if(data.monthly_amount){
@@ -84,7 +85,10 @@ exports.GetAll = async (req, res) => {
 }
 
 exports.GetTotal = async (req, res) => {
-    let result = 0
+    let result = {
+        total: 0,
+        extra:0
+    }
     try {
         const { monthly_amount_id, number, date, created_by, page = 1, length = 10, sortBy = 'id', sortOrder = 'DESC' } = req.query
         let activeAmountId = monthly_amount_id;
@@ -99,7 +103,8 @@ exports.GetTotal = async (req, res) => {
         if (number) {
             filter.number = number
         }
-        result = await repo.GetSum({ field_name: 'total_amount', filter: filter })
+        result.total = await repo.GetSum({ field_name: 'total_amount', filter: filter })
+        result.extra = await repo.GetSum({ field_name: 'total_extra', filter: filter })
     } catch (e) {
         console.log(e)
     }

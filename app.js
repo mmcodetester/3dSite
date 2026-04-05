@@ -29,6 +29,7 @@ const orderTotalRouter = require('./routers/reports/ordertotal.router')
 const dashboardRouter = require('./routers/dashboard.router')
 const weeklyRouter = require('./routers/reports/weeklytotal.router')
 const weeklyPerUserRouter = require('./routers/reports/weeklyamountperuser.router')
+const otherOrderRouter = require('./routers/reports/otherorder.router')
 
 app.use('/api/user', userRouter)
 app.use('/api/number', numberRouter)
@@ -41,17 +42,17 @@ app.use('/api/ordertotal', orderTotalRouter)
 app.use('/api/dashboard', dashboardRouter)
 app.use('/api/weeklyreport', weeklyRouter)
 app.use('/api/weeklyamountperuser', weeklyPerUserRouter)
-
+app.use('/api/otherorder', otherOrderRouter)
 
 database.authenticate().then((res) => {
     console.log('database connected')
 }).catch((err) => {
 })
-database.sync({ force: false }).then(async (res) => {
-    await numberController.InitNumber()
-    await monthController.InitMonth()
-}).catch((err) => {
-})
+// database.sync({ force: false }).then(async (res) => {
+//     await numberController.InitNumber()
+//     await monthController.InitMonth()
+// }).catch((err) => {
+// })
 
 const server = http.createServer(app)
 const io = socket.init(server)

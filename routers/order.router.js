@@ -4,5 +4,6 @@ const controller = require('../controllers/order.controller')
 const { AuthGuard } = require('../services/auth.service')
 
 router.post('/', AuthGuard,controller.Save)
+router.post('/baulksave', AuthGuard, controller.BulkSave)
 
 module.exports = router

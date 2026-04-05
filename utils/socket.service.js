@@ -32,6 +32,7 @@ module.exports = {
                // console.log(fullNumber)
                 // Optionally, emit a response
                 socket.emit('fullnumbers', fullNumber);
+                socket.broadcast.emit('fullnumbers', fullNumber);
             });
             socket.on('disconnect', () => {
                 console.log(`Client disconnected: ${socket.id}`);

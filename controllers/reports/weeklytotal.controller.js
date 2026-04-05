@@ -44,6 +44,9 @@ exports.GetAll = async (req, res) => {
 
         list = await repo.getAll({
             filter: filter,
+            page: page,
+            length: length,
+            order:[sortBy, sortOrder],
             include: [
                 {
                     association: 'monthly_amount',

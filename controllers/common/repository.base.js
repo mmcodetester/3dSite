@@ -17,10 +17,18 @@ class RepositoryBase {
         let result = new PageResult()
         try {
 
-            length = parseInt(length) || 10;
-
-            const offset = (page - 1) * length;
+            let offset = 0;
             result.total = await this.model.count({ where: filter })
+            if(length<0){
+                length = result.total
+                offset = 0
+            }else{
+                length = parseInt(length) || 10;
+                offset = (page - 1) * length;
+            }
+            
+            console.log(offset)
+           
             if (result.total > 0) {
                 const data = await this.model.findAll({
                     where: filter,

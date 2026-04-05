@@ -48,11 +48,11 @@ database.authenticate().then((res) => {
     console.log('database connected')
 }).catch((err) => {
 })
-// database.sync({ force: false }).then(async (res) => {
-//     await numberController.InitNumber()
-//     await monthController.InitMonth()
-// }).catch((err) => {
-// })
+database.sync({ force: false }).then(async (res) => {
+    await numberController.InitNumber()
+    await monthController.InitMonth()
+}).catch((err) => {
+})
 
 const server = http.createServer(app)
 const io = socket.init(server)

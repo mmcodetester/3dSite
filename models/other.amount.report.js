@@ -1,7 +1,7 @@
 const { DataTypes } = require('sequelize')
 const database = require('../utils/data/database')
-
-const OtherAmontReport = database.define('tbl_other_amount_report',{
+//tbl_other_amount_report
+const OtherAmontReport = database.define('tbl_other_order_confirm',{
     id :{
         type: DataTypes.INTEGER,
         primaryKey: true,

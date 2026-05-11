@@ -175,6 +175,7 @@ exports.GetFullNumberList = () =>{
 exports.GetAvailable  = async(req,res) =>{
     let available = 0
     try{
+         console.log('get available', req.query.id)
         const {id} = req.query
         const monthlyAmount = await monthlyAmountRepo.CustomQuery({
             filter: {
@@ -182,12 +183,15 @@ exports.GetAvailable  = async(req,res) =>{
                 status: true,
             }
         })
+        console.log(monthlyAmount)
         if(monthlyAmount){
             const totalSale = await orderRepo.GetSum({field_name:'amount', filter:{
                 deleted: false,
                 number_id : id,
                 monthly_amount_id : monthlyAmount.id
             }}) || 0
+            console.log('total sale',totalSale)
+            console.log(monthlyAmount.amount)
             if(totalSale >0){
                 if(monthlyAmount.amount > totalSale){
                     available = monthlyAmount.amount - totalSale

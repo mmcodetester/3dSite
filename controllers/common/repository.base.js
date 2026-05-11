@@ -20,6 +20,7 @@ class RepositoryBase {
             let offset = 0;
             result.total = await this.model.count({ where: filter })
             if(length<0){
+                //console.log('length is ', length, result.total)
                 length = result.total
                 offset = 0
             }else{
@@ -27,7 +28,7 @@ class RepositoryBase {
                 offset = (page - 1) * length;
             }
             
-            console.log(offset)
+            //console.log(offset, length)
            
             if (result.total > 0) {
                 const data = await this.model.findAll({

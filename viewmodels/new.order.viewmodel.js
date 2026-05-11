@@ -9,6 +9,9 @@ class NewOrderViewModel{
     amount = 0
     date= new Date()
     created_by = null
+    updated_by =null
+    updated_date = null
+    status = false
     deleted = false
 }
 module.exports =  NewOrderViewModel

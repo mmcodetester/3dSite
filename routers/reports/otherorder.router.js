@@ -5,5 +5,6 @@ const { AuthGuard } = require('../../services/auth.service')
 
 router.get('/', AuthGuard, controller.GetAll )
 router.get('/gettotal', AuthGuard, controller.GetTotal)
-
+router.get('/other', AuthGuard, controller.GetAllOtherOrderRecord )
+router.get('/confirmorder', AuthGuard, controller.ConfirmOrder )
 module.exports = router

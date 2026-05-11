@@ -6,6 +6,8 @@ const numberController = require('./controllers/number.controller')
 const monthController = require('./controllers/month.controller')
 const http = require('http')
 const socket = require('./utils/socket.service')
+const { CronJob } = require('cron');
+
 require('dotenv').config()
 
 const cors = require('cors')
@@ -30,6 +32,7 @@ const dashboardRouter = require('./routers/dashboard.router')
 const weeklyRouter = require('./routers/reports/weeklytotal.router')
 const weeklyPerUserRouter = require('./routers/reports/weeklyamountperuser.router')
 const otherOrderRouter = require('./routers/reports/otherorder.router')
+const { CheckGreaterAmount } = require('./controllers/order.controller')
 
 app.use('/api/user', userRouter)
 app.use('/api/number', numberRouter)
@@ -63,7 +66,15 @@ const io = socket.init(server)
 // io.on('getfullnumber', (data) => {
 //     console.log(`socket get full number`);
 // });
+
+const job  = new CronJob("0 */1 * * * *", async () => {
+    console.log("Running every 1 minutes");
+
+    await CheckGreaterAmount()
+});
+job.start()
 server.listen(8088, (err) => {
     if (err) console.log('err starting server - ', err)
     console.log('app is starting on port ', 8088)
+    
 })

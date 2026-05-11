@@ -30,7 +30,7 @@ exports.GetAll = async (req, res) => {
     try {
         const { monthly_amount_id, number, date, created_by, page = 1, length = 10, sortBy = 'id', sortOrder = 'DESC' } = req.query
         let activeAmountId = monthly_amount_id;
-
+        console.log(length)
         if (!activeAmountId) {
             activeAmountId = await GetActiveAmountId();
         }

@@ -27,6 +27,11 @@ const OtherOrder = database.define('tbl_other_order',{
         allowNull : true,
         defaultValue : null
     },
+    status :{
+        type : DataTypes.BOOLEAN,
+        defaultValue : false,
+        allowNull : false
+    },
     deleted :{
         type : DataTypes.BOOLEAN,
         defaultValue : false,

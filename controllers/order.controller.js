@@ -6,10 +6,12 @@ const RepositoryBase = require("./common/repository.base");
 const authService = require('../services/auth.service');
 const OtherOrder = require("../models/other.order.model");
 const OrderViewModel = require("../viewmodels/oerder.viewmodel");
+const GreaterAmount = require("../models/greater.amount.number");
 
 const repo = new RepositoryBase(Order)
 const monthlyAmountRepo = new RepositoryBase(MonthlyAmount)
 const otherOrderRepo = new RepositoryBase(OtherOrder)
+const greaterAmountRepo = new RepositoryBase(GreaterAmount)
 exports.Save = async (req, res) => {
     let result = new CommandResult()
     let fullOrder = []
@@ -175,10 +177,10 @@ exports.BulkSave = async (req, res) => {
                         /// result = await repo.save(vm)
                     }
                 }
-                
+
             };
             result = await repo.bulkSave(orderList)
-            if(result.success){
+            if (result.success) {
                 result = await otherOrderRepo.bulkSave(otherOrderList)
             }
         }
@@ -186,4 +188,79 @@ exports.BulkSave = async (req, res) => {
         console.log(e)
     }
     res.json(result)
+}
+
+exports.CheckGreaterAmount = async () => {
+    console.log("Running every 1 minutes");
+    let result = new CommandResult()
+    try {
+        const list = await greaterAmountRepo.getAllData()
+
+        for (let data of list) {
+            let greater = data.greater;
+            const filter = {
+                deleted: false,
+                number_id: data.number_id,
+                monthly_amount_id: data.month_id
+            }
+            const orderList = await repo.CustomQueryFindAll({ filter: filter })
+
+            for (let order of orderList) {
+                if (greater > 0) {
+                    if (order.amount > 0) {
+                        let vm = new NewOrderViewModel()
+                        vm.id = order.id
+                        
+                        vm.number_id = order.number_id
+                        vm.year = order.year
+                        vm.month_id = order.month_id
+                        vm.monthly_amount_id = order.monthly_amount_id
+                        vm.extra = order.extra
+                        vm.date = order.date
+                        vm.created_by = order.created_by
+                        console.log(greater, order.amount)
+                        if (greater >= order.amount) {
+                            let om = new NewOrderViewModel()
+                            om.id = null
+                            om.number_id =order.number_id
+                            om.amount = order.amount;
+                            om.monthly_amount_id = order.monthly_amount_id
+                            om.extra = 0
+                            om.created_by = order.created_by
+                            om.deleted = false
+                            result = await otherOrderRepo.save(om)
+                            if(result.success){
+                                greater =  greater - om.amount
+                                vm.amount = 0 
+                                result = await repo.save(vm)
+                            }
+                        }else{
+                            let om = new NewOrderViewModel()
+                            om.id = null
+                            om.number_id =order.number_id
+                            om.amount =  greater;
+                            om.monthly_amount_id = order.monthly_amount_id
+                            om.extra = 0
+                            om.created_by = order.created_by
+                            om.deleted = false
+                            result = await otherOrderRepo.save(om)
+                            if(result.success){
+                                
+                                vm.amount = order.amount - greater
+                               
+                                console.log(vm.amount)
+                                result = await repo.save(vm)
+                                if(result.success){
+                                    greater = 0
+                                }
+                            }
+                        }
+                       // console.log(vm)
+                    }
+                }
+            }
+        }
+    } catch (e) {
+        console.log(e)
+    }
 }

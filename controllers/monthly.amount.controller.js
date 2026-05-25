@@ -1,5 +1,6 @@
 const Month = require("../models/month.model");
 const MonthlyAmount = require("../models/monthly.amount");
+const constants = require("../utils/constants");
 const CommandResult = require("../utils/helpers/command.result");
 const PageResult = require("../utils/helpers/page.result");
 const MonthlyAmountViewModel = require("../viewmodels/monthly.amount.viewmodel");
@@ -147,7 +148,19 @@ exports.Delete = async (req, res) => {
     try {
         const { id } = req.query
         if (id) {
-            result = await repo.delete({ id: id })
+            const data = await repo.getById({id:id})
+            if(data){
+                if(!data.status){
+                    result = await repo.delete({ id: id })
+                }else{
+                    result.success = false;
+                    result.messages.push('Inactive Status First!')
+                }
+            }else{
+                result.success = false
+                result.messages.push(constants.RecordNotFound)
+            }
+            
         }
     } catch (e) {
 

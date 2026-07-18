@@ -179,6 +179,10 @@ exports.BulkSave = async (req, res) => {
                 }
 
             };
+            console.log('****order list******')
+            console.log(orderList)
+             console.log('****other order list******')
+            console.log(otherOrderList)
             result = await repo.bulkSave(orderList)
             if (result.success) {
                 result = await otherOrderRepo.bulkSave(otherOrderList)

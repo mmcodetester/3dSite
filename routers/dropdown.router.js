@@ -7,5 +7,6 @@ const monthController = require('../controllers/month.controller')
 router.get('/getmonthlist', AuthGuard, monthController.GetAll)
 router.get('/getuserlist', AuthGuard, controller.GetUserList)
 router.get('/getweeklistbyyear', controller.GetWeeklyListByYear)
+router.get('/getallweeklist', controller.GetAllWeeklyAmountList)
 
 module.exports = router

@@ -25,10 +25,11 @@ exports.GetWeeklyListByYear = async (req, res) =>{
     let result = [] 
     try{
         const { year } = req.query
+        console.log(year)
         const filter = {
             deleted : false
         }
-        if(year){
+        if(year && year!=null){
             filter.year = year
         }
         const list = await monthlyAmountRepo.CustomQueryFindAll({
@@ -67,6 +68,41 @@ exports.GetUserList = async(req, res)=>{
             deleted: false
         }
         result =await userRepo.CustomQueryFindAll({filter:filter})
+    }catch(e){
+        console.log(e)
+    }
+    res.json(result)
+}
+
+exports.GetAllWeeklyAmountList = async(req, res)=>{
+     let result = [] 
+    try{
+        const filter = {
+            deleted : false
+        }
+        const list = await monthlyAmountRepo.CustomQueryFindAll({
+            filter : filter,
+            include :[
+               {
+                    association: 'month',
+                    where: { deleted: false },
+                    required: false,
+                },
+            ]
+        })
+        list.forEach((data) => {
+            let vm = {
+                id : data.id,
+                name :'',
+                status : data.status
+            }
+
+            if(data.month){
+                vm.name = data.month.month_name +" ( "+ data.from_day +" - " + data.to_day + " )";
+            }
+            result.push(vm)
+        });
+
     }catch(e){
         console.log(e)
     }

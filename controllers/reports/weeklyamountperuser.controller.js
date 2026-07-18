@@ -94,7 +94,9 @@ exports.GetTotal = async (req, res) => {
     }
     try {
          const { monthly_amount_id, number, id, page = 1, length = 10, sortBy = 'id', sortOrder = 'DESC' } = req.query
-        let filter = {
+       // console.log('**********************monthly amount is **************************')
+         //console.log(monthly_amount_id)
+         let filter = {
             monthly_amount_id: monthly_amount_id ?? await GetActiveAmountId()
         }
         if (id) {
@@ -117,7 +119,11 @@ exports.GetWeeklyCompairsmByUser=async (req, res) =>{
         const filter = {
             deleted : false
         }
+        const { monthly_amount_id, number, id, page = 1, length = 10, sortBy = 'id', sortOrder = 'DESC' } = req.query
         const userList = await userRepo.CustomQueryFindAll({filter:filter})
+         
+      //  console.log('**********************monthly amount is **************************')
+       // console.log(monthly_amount_id)
         for(let user of userList){
             let vm = {
                 key: user.id,
@@ -125,7 +131,7 @@ exports.GetWeeklyCompairsmByUser=async (req, res) =>{
                 value  : 0,
                 extra : 0
             }
-            const monthlyAmount = await GetActiveAmountId()
+            const monthlyAmount = monthly_amount_id ?? await GetActiveAmountId()
             const totalFilter = {
                 monthly_amount_id : monthlyAmount,
                 id : user.id

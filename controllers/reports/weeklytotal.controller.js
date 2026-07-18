@@ -6,6 +6,7 @@ const RepositoryBase = require("../common/repository.base")
 
 const repo = new RepositoryBase(WeeklyTotal)
 const montlyAmountRepo = new RepositoryBase(MonthlyAmount)
+
 const GetActiveAmountId = async () => {
     let id = null
     try {

@@ -51,7 +51,7 @@ database.authenticate().then((res) => {
     console.log('database connected')
 }).catch((err) => {
 })
-// database.sync({ force: false }).then(async (res) => {
+// database.sync({ force: true }).then(async (res) => {
 //     await numberController.InitNumber()
 //     await monthController.InitMonth()
 // }).catch((err) => {

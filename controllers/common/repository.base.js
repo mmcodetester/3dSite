@@ -9,7 +9,7 @@ class RepositoryBase {
     constructor(model) {
         if (!model || !(model.prototype instanceof Model)) {
             console.log('err : model must be sequelize model ')
-            logger.error(`err : ${model} must be sequelize model`)
+           // logger.error(`err : ${model} must be sequelize model`)
         }
         this.model = model
     }
@@ -53,7 +53,7 @@ class RepositoryBase {
         try {
             data = await this.model.findAll({ where: { deleted: false } })
         } catch (e) {
-            logger.error(e)
+           // logger.error(e)
         }
         return data
     }

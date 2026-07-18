@@ -33,6 +33,7 @@ const weeklyRouter = require('./routers/reports/weeklytotal.router')
 const weeklyPerUserRouter = require('./routers/reports/weeklyamountperuser.router')
 const otherOrderRouter = require('./routers/reports/otherorder.router')
 const { CheckGreaterAmount } = require('./controllers/order.controller')
+const chatRouter = require('./routers/Chat/chat.router')
 
 app.use('/api/user', userRouter)
 app.use('/api/number', numberRouter)
@@ -46,14 +47,15 @@ app.use('/api/dashboard', dashboardRouter)
 app.use('/api/weeklyreport', weeklyRouter)
 app.use('/api/weeklyamountperuser', weeklyPerUserRouter)
 app.use('/api/otherorder', otherOrderRouter)
+app.use('/api/chat', chatRouter)
 
 database.authenticate().then((res) => {
     console.log('database connected')
 }).catch((err) => {
 })
-// database.sync({ force: true }).then(async (res) => {
-//     await numberController.InitNumber()
-//     await monthController.InitMonth()
+// database.sync({ force: false }).then(async (res) => {
+//     //await numberController.InitNumber()
+//     //await monthController.InitMonth()
 // }).catch((err) => {
 // })
 

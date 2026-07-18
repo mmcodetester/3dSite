@@ -1,6 +1,6 @@
 const { DataTypes } = require('sequelize')
 const database = require('../utils/data/database')
-const datebase = require('../utils/data/database')
+
 
 const DailyTotal = database.define('tbl_daily_total', {
     id: {

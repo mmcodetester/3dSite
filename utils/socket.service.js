@@ -63,6 +63,10 @@ module.exports = {
         if (!io) return;
         io.emit('message', message);
     },
+    sendTypingEventToClients: function(data){
+        if (!io) return;
+        io.emit('typing', data);
+    },
     sendRentalCountChange: function () {
         if (!io) return;
         io.emit('rental_count_change');

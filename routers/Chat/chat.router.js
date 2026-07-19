@@ -5,6 +5,6 @@ const router = express.Router()
 
 router.get('/', AuthGuard, controller.GetAll)
 router.post('/send', AuthGuard, controller.SendMessage)
-
+router.get('/sendtypingevent', AuthGuard, controller.SendTypingEvent)
 
 module.exports = router

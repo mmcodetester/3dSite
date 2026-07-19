@@ -65,6 +65,8 @@ exports.GetAll = async (req, res) => {
 exports.SendMessage = async (req, res) => {
     try {
         const text = req.body.text
+        const local_id = req.body.local_id
+        console.log(req.body.local_id)
         var server_id = null
         var success = false
         if (text) {
@@ -84,6 +86,7 @@ exports.SendMessage = async (req, res) => {
                 const formattedDate = moment(vm.date).format("DD/MM/YYYY h:mm a")
 
                 const socketPayload = {
+                    local_id: local_id,
                     server_id: server_id,
                     text: vm.text,
                     sender: vm.sender,

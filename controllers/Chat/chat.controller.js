@@ -122,3 +122,15 @@ exports.SendTypingEvent = async (req, res) => {
     }
     res.json({ success: true })
 }
+
+exports.SendPinMessage =async(req, res)=>{
+    try{
+        const {id} = req.query
+        if(id>0){
+            
+        }
+    }catch(e){
+        console.log(e)
+    }
+    res.json({ success: true })
+}

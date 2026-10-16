@@ -1,12 +1,14 @@
 const MonthlyAmount = require("../../models/monthly.amount");
 const OtherAmontReport = require("../../models/other.amount.report");
 const OtherOrder = require("../../models/other.order.model");
+const NumberModel = require("../../models/number.model");
 const CommandResult = require("../../utils/helpers/command.result");
 const PageResult = require("../../utils/helpers/page.result");
 const NewOrderViewModel = require("../../viewmodels/new.order.viewmodel");
 const OrderViewModel = require("../../viewmodels/oerder.viewmodel");
 const WeeklyAmountViewModel = require("../../viewmodels/reports/weekly.amount.viewmodel");
 const RepositoryBase = require("../common/repository.base");
+const { confirmOtherOrders } = require("../../services/other-order-confirm.service");
 
 const repo = new RepositoryBase(OtherAmontReport)
 const otherOrderRepo = new RepositoryBase(OtherOrder)
@@ -69,7 +71,8 @@ exports.GetAllOtherOrderRecord = async (req, res) => {
             monthly_amount_id: activeAmountId
         }
         if (number) {
-            filter.number = number
+            const matchedNumber = await NumberModel.findOne({ where: { number, deleted: false } })
+            filter.number_id = matchedNumber?.id ?? -1
         }
         const list = await otherOrderRepo.getAll({
             filter: filter,
@@ -106,6 +109,7 @@ exports.GetAllOtherOrderRecord = async (req, res) => {
                 let vm = new WeeklyAmountViewModel()
                 vm.id = element.id
                 vm.total_amount = element.amount
+                vm.total_extra = element.extra ?? 0
                 if (element.user) {
                     vm.username = element.user.name
                 }
@@ -126,7 +130,8 @@ exports.GetAllOtherOrderRecord = async (req, res) => {
         }
         result.total = list.total
     } catch (e) {
-        console.log(e)
+        console.error('Failed to load unsubmitted orders:', e)
+        return res.status(500).json({ message: 'Failed to load unsubmitted orders.' })
     }
     res.json(result)
 }
@@ -156,6 +161,22 @@ exports.ConfirmOrder = async (req, res) => {
     }
     res.json(result)
 }
+exports.ConfirmOrders = async (req, res) => {
+    const result = new CommandResult()
+    try {
+        result.data = await confirmOtherOrders(req.body?.ids, OtherOrder)
+        result.success = true
+        result.messages.push(result.data.count
+            ? `စာရင်း ${result.data.count} ခု ဒိုင်ကြီးထံတင်ပြီးပါပြီ။`
+            : 'ရွေးထားသောစာရင်းအားလုံး တင်ပြီးဖြစ်ပါသည်။')
+        res.json(result)
+    } catch (error) {
+        result.messages.push(error.status ? error.message : 'စာရင်းတင်ခြင်း မအောင်မြင်ပါ။ ပြန်လည်ကြိုးစားပါ။')
+        if (!error.status) console.error('Bulk submission failed:', error)
+        res.status(error.status || 500).json(result)
+    }
+}
+
 exports.GetTotal = async (req, res) => {
     let result = {
         total: 0,

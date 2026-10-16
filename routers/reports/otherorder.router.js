@@ -7,4 +7,5 @@ router.get('/', AuthGuard, controller.GetAll )
 router.get('/gettotal', AuthGuard, controller.GetTotal)
 router.get('/other', AuthGuard, controller.GetAllOtherOrderRecord )
 router.get('/confirmorder', AuthGuard, controller.ConfirmOrder )
+router.post('/confirmorders', AuthGuard, controller.ConfirmOrders)
 module.exports = router

@@ -1,8 +1,10 @@
 # Reply, seen, pins, and private attachments
 
-Implemented in the backend and Vue/Android client. No remote database migration or code deployment was performed for this feature update.
+Implemented and activated after explicit approval on 2026-10-17. The three additive tables were created successfully without deleting existing data. Backend feature code (11fd977) and frontend feature code (c933ab1) are live on Render; the Android debug APK built successfully. Frontend deployment was corrected to build current source with `npm ci && npm run build` and publish `dist`, replacing the previous empty build command and stale `build` directory.
 
-## Activation
+## Activation / repeatable setup
+
+The production migration below has already been applied; these instructions are retained for new environments.
 
 Run `npm run migrate:chat:features` (only migrations/003-chat-features.sql) against the configured database after approval, or deploy the backend with its existing non-destructive sync({ force: false }) to create the three new tables. Existing messages and tables are preserved. Do not use force:true or alter:true. The existing migration runner also contains earlier legacy-chat steps; use the dedicated SQL file for this update when those steps should remain untouched.
 

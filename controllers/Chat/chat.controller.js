@@ -1,136 +1,137 @@
-const Chat = require("../../models/chat.model");
-const RepositoryBase = require("../common/repository.base");
-const socketService = require('../../utils/socket.service');
-const { GetLoggedInUser } = require("../../services/auth.service");
-const ChatViewModel = require("../../viewmodels/Chat/chat.viewmodel");
-const repo = new RepositoryBase(Chat)
-const moment = require('moment')
 const { Op } = require('sequelize')
+const database = require('../../utils/data/database')
+const User = require('../../models/user.model')
+const { Room, Member, Message } = require('../../models/chat-room.model')
+const realtime = require('../../services/chat-socket.service')
+const chatPush = require('../../services/chat-push.service')
+const Device = require('../../models/chat-device.model')
+const { positiveId, roomInput } = require('../../services/chat-rules')
 
-exports.GetAll = async (req, res) => {
-    var result = [];
+const fail = (status, message) => { throw Object.assign(new Error(message), { status }) }
+const action = handler => async (req, res) => {
     try {
-        const limit = parseInt(req.query.limit) || 20;
-        const cursor = req.query.cursor ? parseInt(req.query.cursor) : null;
-        const direction = req.query.direction || 'backward';
-
-        let filter = { deleted: false };
-
-        if (cursor) {
-            if (direction === 'backward') {
-                filter.id = { [Op.lt]: cursor };
-            } else if (direction === 'forward') {
-                filter.id = { [Op.gt]: cursor };
-            }
-        }
-
-        const orderDirection = direction === 'forward' ? 'ASC' : 'DESC';
-
-        let list = await repo.CustomQueryFindAll({
-            filter: filter,
-            order: ['id', orderDirection],
-            include: [
-                {
-                    association: 'sender',
-                    where: { deleted: false },
-                    required: false,
-                },
-            ],
-            limit: limit
-        });
-
-        if (list && list.length > 0) {
-            if (direction === 'backward') {
-                list.reverse();
-            }
-
-            list.forEach((data) => {
-                const socketPayload = {
-                    server_id: data.id,
-                    text: data.text,
-                    sender: data.sender ? data.sender.name : 'Deleted User',
-                    sender_id: data.sender_id,
-                    date: moment(data.date).format("DD/MM/YYYY h:mm a")
-                }
-                result.push(socketPayload)
-            });
-        }
-    } catch (e) {
-        console.error("Error in GetAll:", e);
-        res.status(500).json({ error: "Failed fetching logs" });
+        const user = await User.findOne({ where: { id: req.user.id, deleted: false }, attributes: ['id', 'name'] })
+        if (!user) return res.status(401).json({ message: 'Your account is unavailable.' })
+        await handler(req, res, user)
+    } catch (error) {
+        if (!error.status) console.error('Chat request failed:', error.message)
+        res.status(error.status || 500).json({ message: error.status ? error.message : 'Chat is unavailable. Please try again.' })
     }
-    res.json(result);
 }
-
-exports.SendMessage = async (req, res) => {
-    try {
-        const text = req.body.text
-        const local_id = req.body.local_id
-        console.log(req.body.local_id)
-        var server_id = null
-        var success = false
-        if (text) {
-            var vm = new ChatViewModel()
-            vm.text = text
-            const user = await GetLoggedInUser(req)
-
-            if (user) {
-                vm.sender = user.name
-                vm.sender_id = user.id
-                vm.date = new Date()
-
-                const result = await repo.save(vm)
-
-                server_id = result ? result.id : null;
-
-                const formattedDate = moment(vm.date).format("DD/MM/YYYY h:mm a")
-
-                const socketPayload = {
-                    local_id: local_id,
-                    server_id: server_id,
-                    text: vm.text,
-                    sender: vm.sender,
-                    sender_id: vm.sender_id,
-                    date: formattedDate
-                }
-
-                socketService.sendMessageToClients(socketPayload)
-
-                success = true
-            }
-        }
-    } catch (e) {
-        success = false
-        console.log(e)
+async function authorizedRoom(id, userId) {
+    const room = await Room.findByPk(positiveId(id))
+    if (!room) fail(404, 'Conversation not found.')
+    if (room.type !== 'general' && !await Member.findOne({ where: { room_id: room.id, user_id: userId } })) {
+        fail(403, 'You are not a member of this conversation.')
     }
-    res.json({ success: success, server_id: server_id })
+    return room
 }
-
-exports.SendTypingEvent = async (req, res) => {
-    try {
-        const user = await GetLoggedInUser(req)
-        if (user) {
-            const socketPayload = {
-                server_id: null,
-                sender: user.name,
-                sender_id: user.id,
-            }
-            socketService.sendTypingEventToClients(socketPayload)
-        }
-    } catch (e) {
-        console.log(e)
+async function recipientIds(room) {
+    return room.type === 'general' ? null : (await Member.findAll({ where: { room_id: room.id } })).map(member => member.user_id)
+}
+async function roomView(room, userId) {
+    const members = room.type === 'general' ? [] : await Member.findAll({ where: { room_id: room.id } })
+    const users = members.length ? await User.findAll({
+        where: { id: { [Op.in]: members.map(member => member.user_id) } }, attributes: ['id', 'name', 'deleted'],
+    }) : []
+    const other = users.find(user => user.id !== userId)
+    const [latest] = await Message.findAll({ where: { room_id: room.id }, order: [['id', 'DESC']], limit: 1 })
+    const sender = latest ? users.find(person => person.id === latest.sender_id)
+        || await User.findOne({ where: { id: latest.sender_id }, attributes: ['id', 'name', 'deleted'] }) : null
+    return { id: room.id, type: room.type,
+        last_message: latest ? messageView(latest, sender && !sender.deleted ? sender.name : 'Deleted user') : null,
+        name: room.type === 'direct' ? (other?.deleted ? 'Deleted user' : other?.name || 'Individual chat') : room.name,
+        members: users.map(user => ({ id: user.id, name: user.deleted ? 'Deleted user' : user.name })),
+    }
+}
+function messageView(message, sender) {
+    return { server_id: message.id, room_id: message.room_id, sender_id: message.sender_id,
+        sender, client_id: message.client_id, text: message.text, date: message.date }
+}
+exports.Users = action(async (req, res, user) => {
+    const online = new Set(realtime.onlineIds())
+    const users = await User.findAll({ where: { deleted: false, id: { [Op.ne]: user.id } }, attributes: ['id', 'name'], order: [['name', 'ASC']] })
+    res.json(users.map(person => ({ id: person.id, name: person.name, online: online.has(person.id) })))
+})
+exports.Rooms = action(async (req, res, user) => {
+    const memberships = await Member.findAll({ where: { user_id: user.id } })
+    const rooms = await Room.findAll({ where: { [Op.or]: [ { type: 'general' }, { id: { [Op.in]: memberships.map(member => member.room_id) } } ] }, order: [['id', 'ASC']] })
+    res.json(await Promise.all(rooms.map(room => roomView(room, user.id))))
+})
+exports.CreateRoom = action(async (req, res, user) => {
+    const input = roomInput(req.body, user.id)
+    const users = await User.count({ where: { id: { [Op.in]: input.members }, deleted: false } })
+    if (users !== input.members.length) fail(400, 'One or more selected people are unavailable.')
+    const room = await database.transaction(async transaction => {
+        // findOrCreate handles simultaneous requests for the same individual conversation.
+        const [createdRoom] = req.body.type === 'direct'
+            ? await Room.findOrCreate({ where: { direct_key: input.direct_key }, defaults: { type: 'direct', created_by: user.id }, transaction })
+            : [await Room.create({ type: 'group', name: input.name, created_by: user.id }, { transaction })]
+        await Member.bulkCreate(input.members.map(id => ({ room_id: createdRoom.id, user_id: id })), { transaction, ignoreDuplicates: true })
+        return createdRoom
+    })
+    realtime.notify(input.members, 'rooms_changed', { room_id: room.id })
+    res.json(await roomView(room, user.id))
+})
+exports.GetAll = action(async (req, res, user) => {
+    const room = await authorizedRoom(req.query.room_id, user.id)
+    const limit = Math.min(Math.max(parseInt(req.query.limit) || 40, 1), 100)
+    const forward = req.query.direction === 'forward'
+    const where = { room_id: room.id }
+    if (req.query.cursor) where.id = { [forward ? Op.gt : Op.lt]: positiveId(req.query.cursor) }
+    const rows = await Message.findAll({ where, order: [['id', forward ? 'ASC' : 'DESC']], limit: limit + 1 })
+    const more = rows.length > limit
+    const selected = rows.slice(0, limit)
+    if (!forward) selected.reverse()
+    const users = selected.length ? await User.findAll({ where: { id: { [Op.in]: [...new Set(selected.map(row => row.sender_id))] } }, attributes: ['id', 'name', 'deleted'] }) : []
+    const names = new Map(users.map(person => [person.id, person.deleted ? 'Deleted user' : person.name]))
+    res.json({ messages: selected.map(row => messageView(row, names.get(row.sender_id) || 'Deleted user')), has_more: more })
+})
+exports.SendMessage = action(async (req, res, user) => {
+    const room = await authorizedRoom(req.body.room_id, user.id)
+    const text = typeof req.body.text === 'string' ? req.body.text.trim() : ''
+    const clientId = req.body.client_id
+    if (!text || text.length > 4000 || typeof clientId !== 'string' || !/^[a-zA-Z0-9_-]{1,80}$/.test(clientId)) {
+        fail(400, 'Enter a message up to 4,000 characters with a valid message ID.')
+    }
+    const [message, created] = await Message.findOrCreate({
+        where: { sender_id: user.id, client_id: clientId },
+        defaults: { room_id: room.id, text, date: new Date() },
+    })
+    if (message.room_id !== room.id || message.text !== text) fail(409, 'This message ID has already been used.')
+    const payload = messageView(message, user.name)
+    const recipients = await recipientIds(room)
+    realtime.notify(recipients, 'message', payload)
+    if (created) void chatPush.sendChatPush(payload, recipients, room).catch(error => console.error('Chat push unavailable:', error.code || error.name))
+    res.json({ success: true, ...payload })
+})
+const lastTyping = new Map()
+exports.SendTypingEvent = action(async (req, res, user) => {
+    const room = await authorizedRoom(req.body.room_id, user.id)
+    const now = Date.now()
+    if (now - (lastTyping.get(user.id) || 0) >= 1000) {
+        lastTyping.set(user.id, now)
+        realtime.notify(await recipientIds(room), 'typing', { room_id: room.id, sender_id: user.id, sender: user.name })
     }
     res.json({ success: true })
-}
+})
 
-exports.SendPinMessage =async(req, res)=>{
-    try{
-        const {id} = req.query
-        if(id>0){
-            
-        }
-    }catch(e){
-        console.log(e)
+exports.RegisterDevice = action(async (req, res, user) => {
+    const { installation_id, token } = req.body
+    if (typeof installation_id !== 'string' || !/^[a-zA-Z0-9_-]{16,80}$/.test(installation_id) ||
+        typeof token !== 'string' || token.length < 20 || token.length > 4096 || /\s/.test(token)) {
+        fail(400, 'Invalid notification device.')
     }
+    await database.transaction(async transaction => {
+        // A refreshed token replaces this installation's old token; switching accounts replaces its owner.
+        await Device.destroy({ where: { token, installation_id: { [Op.ne]: installation_id } }, transaction })
+        await Device.upsert({ user_id: user.id, installation_id, token, updated_at: new Date() }, { transaction, conflictFields: ['installation_id'] })
+    })
+    res.json({ success: true, push_configured: chatPush.isConfigured() })
+})
+exports.UnregisterDevice = action(async (req, res, user) => {
+    const installationId = req.body.installation_id
+    if (typeof installationId !== 'string' || !/^[a-zA-Z0-9_-]{16,80}$/.test(installationId)) fail(400, 'Invalid notification device.')
+    await Device.destroy({ where: { user_id: user.id, installation_id: installationId } })
     res.json({ success: true })
-}
+})

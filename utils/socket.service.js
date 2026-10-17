@@ -21,6 +21,8 @@ module.exports = {
 
         });
 
+        require('../services/chat-socket.service').init(io);
+
         io.on('connection', (socket) => {
             console.log(`New client connected: ${socket.id}`);
             socket.on('getfullnumber',async (data) => {

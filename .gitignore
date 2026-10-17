@@ -69,3 +69,6 @@ logs/
 
 # Optional: uploads (if storing files locally)
 uploads/
+# Private Firebase Admin credentials belong in deployment secrets.
+firebase-service-account*.json
+service-account*.json

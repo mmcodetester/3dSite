@@ -1,10 +1,13 @@
 const controller = require('../../controllers/Chat/chat.controller')
-const express = require('express')
+const router = require('express').Router()
 const { AuthGuard } = require('../../services/auth.service')
-const router = express.Router()
-
-router.get('/', AuthGuard, controller.GetAll)
-router.post('/send', AuthGuard, controller.SendMessage)
-router.get('/sendtypingevent', AuthGuard, controller.SendTypingEvent)
-
+router.use(AuthGuard)
+router.get('/users', controller.Users)
+router.get('/rooms', controller.Rooms)
+router.post('/rooms', controller.CreateRoom)
+router.get('/', controller.GetAll)
+router.post('/send', controller.SendMessage)
+router.post('/typing', controller.SendTypingEvent)
+router.post('/devices', controller.RegisterDevice)
+router.delete('/devices', controller.UnregisterDevice)
 module.exports = router

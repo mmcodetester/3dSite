@@ -23,3 +23,14 @@ Deploy the backend before publishing the updated frontend/installing the feature
 ## Verification
 
 Backend tests cover membership gates, room-scoped replies, idempotent reply/upload retries, file validation, private downloads, monotonic seen cursors, and pin/unpin events. Frontend tests cover offline attachment queues/retries, read-visibility guards, and structured-clone-safe reactive reply/attachment previews. Sample-data browser checks exercised reply sending, seen-reader lists, and pin/unpin controls. Android/device file picking, photo rendering, and native Share should additionally be tested on Samsung/Redmi after deployment.
+
+
+## Message deletion and model organization
+
+Chat controllers use `RepositoryBase` query methods that forward Sequelize options, including transactions and row locks. Existing financial repository save/delete behavior is unchanged.
+
+Attachment, message detail, read receipt, and message deletion models each live in their own model file. `chat-features.model.js` is a compatibility export only.
+
+Message deletion is sender-only and keeps the message ID, date, sender, and read history. The text becomes `Deleted Message`; attachments and reply previews are hidden, pins are removed, and attachment downloads are refused. Reconnect checks room deletion records so old cached messages and quoted replies are reconciled even when the message cursor has advanced.
+
+The additive `tbl_chat_message_deletion` table is registered before the existing `database.sync({ force: false })` call, which creates it on backend restart. No existing table alteration, forced synchronization, or data reset is required. Deploy the backend before the updated frontend.

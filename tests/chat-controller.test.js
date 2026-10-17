@@ -54,6 +54,10 @@ const mocks = {
     '../models/chat-room.model': {Room, Member, Message},
     '../services/chat-socket.service': { onlineIds: () => [2], notify: (...args) => notifications.push(args) },
 }
+for (const [name, filename] of [['Attachment', 'chat-attachment'], ['Detail', 'chat-message-detail'], ['Receipt', 'chat-read']]) {
+    mocks['../models/' + filename + '.model'] = mocks['../models/chat-features.model'][name]
+}
+mocks['../models/chat-message-deletion.model'] = { findByPk: async () => null, findAll: async () => [] }
 for (const [relative,exports] of Object.entries(mocks)) {
     const filename = require.resolve(path.join(__dirname,relative))
     require.cache[filename] = { id: filename, filename, loaded: true, exports }

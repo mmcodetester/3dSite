@@ -11,9 +11,15 @@ router.post('/typing', controller.SendTypingEvent)
 router.post('/devices', controller.RegisterDevice)
 router.delete('/devices', controller.UnregisterDevice)
 const extras = require('../../controllers/Chat/chat-features.controller')
+router.get('/rooms/:roomId/deletions', extras.Deletions)
+router.delete('/rooms/:roomId/messages/:messageId', extras.Delete)
 router.post('/rooms/:roomId/read', extras.Read)
 router.post('/rooms/:roomId/messages/:messageId/pin', extras.Pin)
-router.post('/rooms/:roomId/attachments', require('express').raw({type:'application/octet-stream',limit:'10mb'}), extras.Upload)
+router.post(
+    '/rooms/:roomId/attachments',
+    require('express').raw({ type: 'application/octet-stream', limit: '10mb' }),
+    extras.Upload,
+)
 router.get('/attachments/:id', extras.Download)
 router.delete('/attachments/:id', extras.DiscardUpload)
 module.exports = router

@@ -13,6 +13,41 @@ class RepositoryBase {
         }
         this.model = model
     }
+    // Options pass through unchanged so chat transactions and locks remain atomic.
+    async findAll(options = {}) {
+        return this.model.findAll(options)
+    }
+    async findOne(options = {}) {
+        return this.model.findOne(options)
+    }
+    async findByPk(id, options = {}) {
+        return this.model.findByPk(id, options)
+    }
+    async findOrCreate(options) {
+        return this.model.findOrCreate(options)
+    }
+    async create(values, options = {}) {
+        return this.model.create(values, options)
+    }
+    async bulkCreate(values, options = {}) {
+        return this.model.bulkCreate(values, options)
+    }
+    async update(values, options) {
+        return this.model.update(values, options)
+    }
+    async destroy(options) {
+        return this.model.destroy(options)
+    }
+    async upsert(values, options = {}) {
+        return this.model.upsert(values, options)
+    }
+    async count(options = {}) {
+        return this.model.count(options)
+    }
+    async sum(field, options = {}) {
+        return this.model.sum(field, options)
+    }
+
     async getAll({ page = 1, length = 10, filter = {}, include = [], order = ['id', 'DESC'] }) {
         let result = new PageResult()
         try {

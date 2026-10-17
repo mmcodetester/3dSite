@@ -5,6 +5,8 @@ const { Room, Member, Message } = require('../../models/chat-room.model')
 const realtime = require('../../services/chat-socket.service')
 const chatPush = require('../../services/chat-push.service')
 const Device = require('../../models/chat-device.model')
+const { Detail, Attachment, Receipt } = require('../../models/chat-features.model')
+const features = require('../../services/chat-features.service')
 const { positiveId, roomInput } = require('../../services/chat-rules')
 
 const fail = (status, message) => { throw Object.assign(new Error(message), { status }) }
@@ -38,8 +40,13 @@ async function roomView(room, userId) {
     const [latest] = await Message.findAll({ where: { room_id: room.id }, order: [['id', 'DESC']], limit: 1 })
     const sender = latest ? users.find(person => person.id === latest.sender_id)
         || await User.findOne({ where: { id: latest.sender_id }, attributes: ['id', 'name', 'deleted'] }) : null
-    return { id: room.id, type: room.type,
-        last_message: latest ? messageView(latest, sender && !sender.deleted ? sender.name : 'Deleted user') : null,
+    const reads = await Receipt.findAll({ where: { room_id: room.id }, attributes: ['user_id','message_id','read_at'], raw:true })
+    const pinnedDetails = await Detail.findAll({ where: { pinned:true }, attributes:['message_id'] })
+    const pinnedRows = pinnedDetails.length ? await Message.findAll({where:{room_id:room.id,id:{[Op.in]:pinnedDetails.map(item=>item.message_id)}},order:[['id','DESC']],limit:50}) : []
+    const pins = await features.enrich(pinnedRows.map(item=>messageView(item,'')))
+    const [last] = latest ? await features.enrich([messageView(latest,sender && !sender.deleted ? sender.name : 'Deleted user')]) : []
+    return { id: room.id, type: room.type, created_by:room.created_by, reads, pins,
+        last_message: last || null,
         name: room.type === 'direct' ? (other?.deleted ? 'Deleted user' : other?.name || 'Individual chat') : room.name,
         members: users.map(user => ({ id: user.id, name: user.deleted ? 'Deleted user' : user.name })),
     }
@@ -85,21 +92,33 @@ exports.GetAll = action(async (req, res, user) => {
     if (!forward) selected.reverse()
     const users = selected.length ? await User.findAll({ where: { id: { [Op.in]: [...new Set(selected.map(row => row.sender_id))] } }, attributes: ['id', 'name', 'deleted'] }) : []
     const names = new Map(users.map(person => [person.id, person.deleted ? 'Deleted user' : person.name]))
-    res.json({ messages: selected.map(row => messageView(row, names.get(row.sender_id) || 'Deleted user')), has_more: more })
+    res.json({ messages: await features.enrich(selected.map(row => messageView(row, names.get(row.sender_id) || 'Deleted user'))), has_more: more })
 })
 exports.SendMessage = action(async (req, res, user) => {
     const room = await authorizedRoom(req.body.room_id, user.id)
     const text = typeof req.body.text === 'string' ? req.body.text.trim() : ''
     const clientId = req.body.client_id
-    if (!text || text.length > 4000 || typeof clientId !== 'string' || !/^[a-zA-Z0-9_-]{1,80}$/.test(clientId)) {
+    if ((!text && !req.body.attachment_id) || text.length > 4000 || typeof clientId !== 'string' || !/^[a-zA-Z0-9_-]{1,80}$/.test(clientId)) {
         fail(400, 'Enter a message up to 4,000 characters with a valid message ID.')
     }
-    const [message, created] = await Message.findOrCreate({
-        where: { sender_id: user.id, client_id: clientId },
-        defaults: { room_id: room.id, text, date: new Date() },
+    const replyId = req.body.reply_to_id == null ? null : positiveId(req.body.reply_to_id)
+    const attachmentId = req.body.attachment_id || null
+    if(attachmentId && (typeof attachmentId!=='string' || !/^[a-f0-9-]{36}$/i.test(attachmentId))) fail(400,'Invalid attachment.')
+    const [message, created] = await database.transaction(async transaction=>{
+        if(replyId && !await Message.findOne({where:{id:replyId,room_id:room.id},transaction})) fail(400,'Reply message is not in this conversation.')
+        const attachment=attachmentId ? await Attachment.findByPk(attachmentId,{transaction,lock:transaction.LOCK.UPDATE}) : null
+        if(attachmentId && (!attachment || attachment.owner_id!==user.id || attachment.room_id!==room.id)) fail(403,'Attachment is not available in this conversation.')
+        const [saved,isNew]=await Message.findOrCreate({where:{sender_id:user.id,client_id:clientId},defaults:{room_id:room.id,text,date:new Date()},transaction})
+        if(saved.room_id!==room.id || saved.text!==text) fail(409,'This message ID has already been used.')
+        if(attachmentId) {
+            const linked=await Detail.findOne({where:{attachment_id:attachmentId},transaction})
+            if(linked && linked.message_id!==saved.id) fail(409,'This attachment is already used by another message.')
+        }
+        const [detail]=await Detail.findOrCreate({where:{message_id:saved.id},defaults:{reply_to_id:replyId,attachment_id:attachmentId},transaction})
+        if((detail.reply_to_id || null)!==replyId || (detail.attachment_id || null)!==attachmentId) fail(409,'This message ID has already been used.')
+        return [saved,isNew]
     })
-    if (message.room_id !== room.id || message.text !== text) fail(409, 'This message ID has already been used.')
-    const payload = messageView(message, user.name)
+    const [payload] = await features.enrich([messageView(message,user.name)])
     const recipients = await recipientIds(room)
     realtime.notify(recipients, 'message', payload)
     if (created) void chatPush.sendChatPush(payload, recipients, room).catch(error => console.error('Chat push unavailable:', error.code || error.name))
@@ -135,3 +154,5 @@ exports.UnregisterDevice = action(async (req, res, user) => {
     await Device.destroy({ where: { user_id: user.id, installation_id: installationId } })
     res.json({ success: true })
 })
+
+exports.access = { action, authorizedRoom, recipientIds, messageView }

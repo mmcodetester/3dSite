@@ -2,8 +2,10 @@
 
 The code includes Android local notifications, browser notifications, and Firebase Cloud Messaging (FCM)
 for Android messages received while the app is backgrounded or normally closed. Typing behavior is unchanged.
-Firebase delivery has not been activated or tested against a real Firebase project: project configuration
-and the notification-device database migration are still required.
+Firebase Android configuration is installed. The approved server credential is stored outside both repositories,
+and local Google authentication has been verified. Render secret-file/environment configuration is deployed and live.
+Firebase dry-run validation against an existing registered device passed; no notification was sent.
+Real-device background and offline-delivery verification remains required.
 
 ## 1. Create the Firebase project and Android configuration
 
@@ -38,6 +40,7 @@ Backend environment variables:
 ```dotenv
 CHAT_PUSH_ENABLED=true
 FIREBASE_PROJECT_ID=dmaster-chat
+# Render secret-file path: /etc/secrets/firebase-service-account.json
 # Required for a private key file; omit when using a configured cloud Application Default Credential.
 GOOGLE_APPLICATION_CREDENTIALS=/absolute/server/path/to/firebase-service-account.json
 ```
@@ -106,3 +109,13 @@ Permissions are requested only when the user taps the bell; denied permissions c
 
 
 
+
+## Registration recovery and missing cache
+
+The Android client retries failed push-device registration on app resume, network reconnection, and periodic chat sync. Existing native notification permission is reused without prompting; an explicit per-account opt-out is preserved. The Firebase token is reused when only the backend registration request failed.
+
+Chat sync restores the latest messages when a saved room cursor exists but its message cache is empty. Older history is then downloaded automatically in pages without generating historical notification alerts. Pending outgoing messages remain in the cache. Incoming history continues syncing even if another room or an outgoing retry fails. This recovery runs while the app can execute, including resume/reconnection; Android displays background FCM alerts independently of the WebView cache.
+
+On Samsung, remove 3DMaster from Sleeping/Deep sleeping apps and add it to Never sleeping apps where available. On Redmi/HyperOS, allow Background autostart and check notification/background battery settings. Menu names vary by model. Native notification permission must remain enabled. These settings require the phone owner; the app cannot override manufacturer restrictions.
+
+Install the newly built APK over the existing app and reopen it once before retesting. Verify with a second account while the receiving device is backgrounded, screen-locked, and after an offline/reconnect period. Do not treat automated registration/cache tests as proof of delivery on a particular physical phone.

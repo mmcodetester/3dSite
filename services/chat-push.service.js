@@ -31,7 +31,7 @@ exports.sendChatPush = async (message, recipientIds, room) => {
         // Each account has its own data payload so a notification cannot open another account's room.
         const responses = await client.sendEach(batch.map(device => ({
             token: device.token,
-            notification: { title, body: message.text.slice(0, 200) },
+            notification: { title, body: (message.text || (message.attachment ? 'Attachment: '+message.attachment.name : 'New message')).slice(0, 200) },
             data: { type: 'chat', room_id: String(message.room_id), account_id: String(device.user_id),
                 message_id: String(message.server_id), sender_id: String(message.sender_id), sender: message.sender,
                 text: message.text.slice(0, 200), room_name: room.name || '', room_type: room.type },

@@ -6,6 +6,7 @@ const database = require('../utils/data/database')
     try {
         await database.query(fs.readFileSync(path.join(__dirname, '001-chat-rooms.sql'), 'utf8'))
         await database.query(fs.readFileSync(path.join(__dirname, '002-chat-notifications.sql'), 'utf8'))
+        await database.query(fs.readFileSync(path.join(__dirname, '003-chat-features.sql'), 'utf8'))
         console.log('Chat rooms and notification device migrations complete. Existing messages are in General.')
     } catch (error) {
         console.error('Chat migration failed:', error.message)

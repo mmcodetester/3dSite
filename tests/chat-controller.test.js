@@ -4,7 +4,7 @@ const path = require('node:path')
 const { Op } = require('sequelize')
 // Load the real controller with an isolated database and socket boundary; no DB_URL is used.
 const user = { id: 2, name: 'Current User' }
-let rooms, members, messages, nextMessageId, notifications, queryOptions
+let details = [], rooms, members, messages, nextMessageId, notifications, queryOptions
 const Room = {
     findByPk: async id => rooms.find(room => room.id === id),
     findAll: async () => rooms,
@@ -21,6 +21,7 @@ const Member = {
     bulkCreate: async rows => { for(const row of rows) if(!members.some(member=> member.room_id===row.room_id && member.user_id===row.user_id)) members.push(row) },
 }
 const Message = {
+    findOne:async({where})=>messages.find(message=>message.id===where.id && message.room_id===where.room_id),
     findOrCreate: async ({where,defaults}) => {
         const existing = messages.find(message => message.sender_id===where.sender_id && message.client_id===where.client_id)
         if(existing) return [existing,false]
@@ -37,6 +38,11 @@ const Message = {
 const deviceChanges=[]
 const pushCalls=[]
 const mocks = {
+    '../models/chat-features.model': {
+        Detail: {findOne:async()=>null,findAll:async()=>[],findOrCreate:async({where,defaults})=>{let item=details.find(row=>row.message_id===where.message_id);if(item)return[item,false];item={...where,...defaults};details.push(item);return[item,true]}},
+        Attachment: {findByPk:async()=>null}, Receipt:{findAll:async()=>[]},
+    },
+    '../services/chat-features.service': {enrich:async items=>items},
     '../models/chat-device.model': {destroy:async options=>deviceChanges.push(options),upsert:async values=>deviceChanges.push(values)},
     '../services/chat-push.service': {isConfigured:()=>false,sendChatPush:async(...args)=>pushCalls.push(args)},
     '../utils/data/database': { transaction: async work => work({}) },
@@ -56,7 +62,7 @@ const controller = require('../controllers/Chat/chat.controller')
 function reset() {
     rooms = [{id:1,type:'general',name:'General'},{id:2,type:'group',name:'Private'},{id:3,type:'direct'}]
     members = [{room_id:2,user_id:2},{room_id:2,user_id:3},{room_id:3,user_id:3}]
-    messages = []; nextMessageId = 1; notifications = []; queryOptions = null
+    messages = []; details=[]; nextMessageId = 1; notifications = []; queryOptions = null
 }
 async function request(method, body = {}, query = {}) {
     const res = {statusCode:200,status(code){this.statusCode=code;return this},json(value){this.body=value;return this}}
@@ -136,4 +142,14 @@ test('device registration binds to the logged-in account and unregister is accou
  assert.equal(deviceChanges.at(-1).user_id,2)
  await request('UnregisterDevice',{installation_id})
  assert.equal(deviceChanges.at(-1).where.user_id,2)
+})
+
+test('replies are room-scoped and retries cannot change their reply target',async()=>{
+ reset()
+ const first=await request('SendMessage',{room_id:2,text:'Original',client_id:'original'})
+ const reply=await request('SendMessage',{room_id:2,text:'Reply',client_id:'reply',reply_to_id:first.body.server_id})
+ assert.equal(reply.statusCode,200)
+ assert.equal(details.find(item=>item.message_id===reply.body.server_id).reply_to_id,first.body.server_id)
+ assert.equal((await request('SendMessage',{room_id:1,text:'Cross-room reply',client_id:'cross',reply_to_id:first.body.server_id})).statusCode,400)
+ assert.equal((await request('SendMessage',{room_id:2,text:'Reply',client_id:'reply'})).statusCode,409)
 })

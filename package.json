@@ -5,6 +5,7 @@
   "main": "index.js",
   "scripts": {
     "dev": "nodemon app.js",
+    "migrate:chat:features": "node migrations/chat-features.js",
     "migrate:chat": "node migrations/chat.js",
     "test": "node --test tests/*.test.js"
   },
